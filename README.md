@@ -3,7 +3,7 @@
 A **macOS-only MCP server** that enables LLMs to capture screenshots of specific application windows, providing visual context for development and debugging tasks.
 
 > [!IMPORTANT]
-> Requires **Screen Capture permission** - must be granted before running window approval setup. Read setup instructions below.
+> Requires **Screen Capture permission** - must be granted before running window approval setup. Read instructions below.
 
 ### Available Tools
 
