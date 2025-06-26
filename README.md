@@ -1,6 +1,6 @@
 # Screeny MCP Server
 
-A **macOS-only MCP server** that enables LLMs to capture and analyze screenshots of specific application windows, providing visual context for development and debugging tasks.
+A **macOS-only MCP server** that enables LLMs to capture screenshots of specific application windows, providing visual context for development and debugging tasks.
 
 > [!IMPORTANT]
 > Requires **Screen Capture permission** - must be granted before running setup.
@@ -166,7 +166,7 @@ mcp-server-screeny --setup
 
 **"Screen Recording permission required" or "No windows found"**
 
-- Solution: Grant Screen Recording permission in System Settings > Privacy & Security > Screen Recording
+- Solution: Grant Screen Recording permission in System Settings > Privacy & Security > Screen & System Audio Recording
   - Click "+" button and manually add your MCP host (Claude Desktop, Cursor, etc.)
   - Restart your MCP host application after granting permissions
 - Try running setup again after granting permissions
