@@ -3,7 +3,7 @@
 A **macOS-only MCP server** that enables LLMs to capture screenshots of specific application windows, providing visual context for development and debugging tasks.
 
 > [!IMPORTANT]
-> Requires **Screen Capture permission** - must be granted before running setup.
+> Requires **Screen Capture permission** - must be granted before running window approval setup. Read setup instructions below.
 
 ### Available Tools
 
@@ -12,39 +12,12 @@ A **macOS-only MCP server** that enables LLMs to capture screenshots of specific
   - Only shows user approved windows
 
 - `takeScreenshot` - Captures a screenshot of a specific window by its ID.
-  - **Captures windows in background** - no need to bring window to front, but cannot capture minimized windows (will prompt to restore from dock)
+  - **Captures windows in background** - no need to bring window to front, but cannot capture minimized windows
   - **Provides actual pixel data** - full-fidelity image, not OCR or text extraction
 
 ### Resources
 
 - `screeny://info` - Server information and configuration details
-
-## Setup
-
-### 1. Grant Screen Capture Permission (Required)
-
-**Important:** Grant permission before running setup.
-
-> **Note**: MCP hosts may not prompt for Screen Capture permission automatically. Manually add your MCP host:
->
-> 1. Open **System Settings** > **Privacy & Security** > **Screen & System Audio Recording**
-> 2. Click the **"+"** button
-> 3. Navigate to and select your MCP host application (e.g., Claude Desktop, Cursor)
-> 4. **Restart the MCP host application** after granting permission
-
-### 2. Window Approval (Required)
-
-After granting permissions, approve which windows can be captured:
-
-```bash
-# After installing via uvx or pipx, run:
-mcp-server-screeny --setup
-
-# To auto-approve all current windows in one go, run:
-mcp-server-screeny --setup --allow-all
-```
-
-Approvals are saved to `~/.screeny/approved_windows.json`. Re-run setup when you want to update the list of approved windows.
 
 ## Configuration
 
@@ -130,17 +103,38 @@ First install with: `pipx install mcp-server-screeny`
 
 </details>
 
-## Usage
+## Setup
 
-1. Run setup (one time): `mcp-server-screeny --setup`
-2. Configure your MCP client with the settings above.
-3. Ask your LLM to list windows and take screenshots.
+### 1. Grant Screen Capture Permission (Required)
+
+**Important:** Grant permission before running window approval.
+
+> **Note**: MCP hosts may not prompt for Screen Capture permission automatically. Manually add your MCP host:
+>
+> 1. Open **System Settings** > **Privacy & Security** > **Screen & System Audio Recording**
+> 2. Click the **"+"** button
+> 3. Navigate to and select your MCP host application (e.g., Claude Desktop, Cursor)
+> 4. **Restart the MCP host application** after granting permission
+
+### 2. Window Approval (Required)
+
+After configuring your MCP client above, approve which windows can be captured:
+
+```bash
+# Interactive approval
+mcp-server-screeny --setup
+
+# Auto-approve all current windows
+mcp-server-screeny --setup --allow-all
+```
+
+Approvals are saved to `~/.screeny/approved_windows.json`. Re-run setup when you want to update the list of approved windows.
 
 ## Security & Privacy
 
-- **Explicit consent**: Only user-approved windows can be captured
-- **Local processing**: All data stays on your machine, no external transmission
-- **Temporary storage**: Screenshots are saved to a temporary file, encoded as base64, and deleted immediately after. No screenshot data remains on disk after use.
+- Only user-approved windows can be captured
+- All processing stays local on your machine
+- Screenshots are temporary and deleted immediately after use
 
 ## Troubleshooting
 
