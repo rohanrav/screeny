@@ -14,6 +14,8 @@ from mcp.shared.exceptions import McpError
 from mcp.types import ErrorData, INVALID_PARAMS, INTERNAL_ERROR
 from pydantic import BaseModel, Field
 
+from .image_compression import compress_image, get_mime_type
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -28,9 +30,10 @@ mcp = FastMCP(
 
 WORKFLOW:
 1. Call 'list_windows' once to discover available windows and their IDs
-2. Use 'take_screenshot' with any valid window ID from the list_windows results
+2. Use 'take_screenshot' with any valid window ID from the list_windows results. Use compress=true if you need to reduce image size for transmission..
 
-Note: Server requires the user to setup (Screen Recording permission and window approval) before use."""
+Note: Server requires the user to setup (Screen Recording permission and window approval) before use.
+Screenshots are returned at full quality by default. Use compression only when needed."""
 )
 
 
@@ -50,6 +53,9 @@ class ScreenshotRequest(BaseModel):
 
     window_id: Annotated[str, Field(
         description="The window ID from listWindows to capture")]
+    compress: Annotated[bool, Field(
+        default=False,
+        description="Compress image to reduce size (may reduce quality)")]
 
 
 class WindowSetupRequest(BaseModel):
@@ -384,12 +390,15 @@ def take_screenshot(request: ScreenshotRequest) -> list[ImageContent | TextConte
 
     Args:
     - window_id (str): Exact window ID string from list_windows results
+    - compress (bool): Optional. Compress image to reduce size (may reduce quality)
 
     Returns:
     - ImageContent: Base64-encoded PNG screenshot  
     - TextContent: Capture metadata (window info, timestamp)
 
     Note: Can capture windows in background but not minimized windows.
+    By default, returns full quality screenshots to preserve image fidelity.
+    Use compress=true to reduce size for transmission if needed.
     """
     global _approved_windows
     window_id = request.window_id
@@ -442,10 +451,18 @@ def take_screenshot(request: ScreenshotRequest) -> list[ImageContent | TextConte
             ))
 
         image_data = tmp_file_path.read_bytes()
-        base64_data = b64encode(image_data).decode('utf-8')
 
-        logger.info(
-            f"Successfully captured screenshot for window: {window_info['title']} ({len(image_data)} bytes)")
+        if request.compress:
+            # Calculate target size to stay under 1MB MCP limit after base64 encoding
+            # Target raw size = 1MB / 1.35 (to account for base64 overhead)
+            mcp_limit_in_bytes = 1024 * 1024
+            target_raw_size = int(mcp_limit_in_bytes / 1.35)
+            image_data, format_used = compress_image(tmp_path, target_raw_size)
+        else:
+            format_used = "PNG"
+
+        base64_data = b64encode(image_data).decode('utf-8')
+        mime_type = get_mime_type(format_used)
 
         metadata = {
             "window_id": window_id,
@@ -458,7 +475,7 @@ def take_screenshot(request: ScreenshotRequest) -> list[ImageContent | TextConte
             ImageContent(
                 type="image",
                 data=base64_data,
-                mimeType="image/png"
+                mimeType=mime_type
             ),
             TextContent(
                 type="text",
@@ -490,7 +507,7 @@ def get_server_info() -> str:
     """Get information about the Screeny MCP server"""
     return json.dumps({
         "name": "Screeny MCP Server",
-        "version": "0.1.5",
+        "version": "0.1.10",
         "description": "Capture screenshots of specific application windows, providing visual context for development and debugging tasks",
         "capabilities": [
             "List application windows on macOS",

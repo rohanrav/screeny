@@ -14,6 +14,7 @@ A **macOS-only MCP server** that enables LLMs to capture screenshots of specific
 - `takeScreenshot` - Captures a screenshot of a specific window by its ID.
   - **Captures windows in background** - no need to bring window to front, but cannot capture minimized windows
   - **Provides actual pixel data** - full-fidelity image, not OCR or text extraction
+  - **Can compress image** - if requested, compresses image to fit within 1MB
 
 ### Resources
 
@@ -24,28 +25,11 @@ A **macOS-only MCP server** that enables LLMs to capture screenshots of specific
 ### Claude Desktop
 
 1. Open Claude settings → Developer → Edit Config
-2. Add configuration:
+2. Add configuration
+3. **Restart Claude Desktop** after saving config
 
 <details>
-<summary><strong>Using uvx (recommended)</strong></summary>
-
-```json
-{
-  "mcpServers": {
-    "screeny": {
-      "command": "uvx",
-      "args": ["mcp-server-screeny"]
-    }
-  }
-}
-```
-
-> **Note:** If you get a "spawn uvx ENOENT" error, replace `"uvx"` with the full path to uvx (find it with `which uvx` in terminal).
-
-</details>
-
-<details>
-<summary><strong>Using pipx installation</strong></summary>
+<summary><strong>Using pipx (recommended)</strong></summary>
 
 First install with: `pipx install mcp-server-screeny`
 
@@ -64,42 +48,77 @@ First install with: `pipx install mcp-server-screeny`
 
 </details>
 
-### Cursor
-
-1. Open Cursor settings → Tools & Integrations → MCP Tools
-2. Add configuration:
-
 <details>
-<summary><strong>Using uvx (recommended)</strong></summary>
+<summary><strong>Using uvx</strong></summary>
 
 ```json
 {
-  "screeny": {
-    "command": "uvx",
-    "args": ["mcp-server-screeny"]
+  "mcpServers": {
+    "screeny": {
+      "command": "uvx",
+      "args": ["mcp-server-screeny"]
+    }
   }
 }
 ```
 
-> **Note:** If you get a "spawn uvx ENOENT" error, replace `"uvx"` with the full path to uvx (find it with `which uvx` in terminal).
+> **Note:** If you get a "spawn uvx ENOENT" error, replace `"uvx"` with the full path to uvx:
+>
+> ```bash
+> which uvx  # Find your uvx path
+> ```
+>
+> Then use that full path in the config (e.g., `"/opt/homebrew/bin/uvx"`).
 
 </details>
 
+### Cursor
+
+1. Open Cursor settings → Tools & Integrations → MCP Tools
+2. Add configuration
+3. **Restart Cursor** after saving config
+
 <details>
-<summary><strong>Using pipx installation</strong></summary>
+<summary><strong>Using pipx (recommended)</strong></summary>
 
 First install with: `pipx install mcp-server-screeny`
 
 ```json
 {
-  "screeny": {
-    "command": "mcp-server-screeny",
-    "args": []
+  "mcpServers": {
+    "screeny": {
+      "command": "mcp-server-screeny",
+      "args": []
+    }
   }
 }
 ```
 
 > **Note:** If you get an `ENOENT` error, replace `"mcp-server-screeny"` with the full path to the executable (find it with `which mcp-server-screeny` in your terminal).
+
+</details>
+
+<details>
+<summary><strong>Using uvx</strong></summary>
+
+```json
+{
+  "mcpServers": {
+    "screeny": {
+      "command": "uvx",
+      "args": ["mcp-server-screeny"]
+    }
+  }
+}
+```
+
+> **Note:** If you get a "spawn uvx ENOENT" error, replace `"uvx"` with the full path to uvx:
+>
+> ```bash
+> which uvx  # Find your uvx path
+> ```
+>
+> Then use that full path in the config (e.g., `"/opt/homebrew/bin/uvx"`).
 
 </details>
 
@@ -109,16 +128,24 @@ First install with: `pipx install mcp-server-screeny`
 
 **Important:** Grant permission before running window approval.
 
-> **Note**: MCP hosts may not prompt for Screen Capture permission automatically. Manually add your MCP host:
+> **Note**: You need to grant Screen Capture permission to BOTH:
+>
+> 1. **Your Terminal application** (Terminal.app, iTerm2, etc.) - Required for running setup
+> 2. **Your MCP host** (Claude Desktop, Cursor) - Required for taking screenshots
+>
+> To add them:
 >
 > 1. Open **System Settings** > **Privacy & Security** > **Screen & System Audio Recording**
 > 2. Click the **"+"** button
-> 3. Navigate to and select your MCP host application (e.g., Claude Desktop, Cursor)
-> 4. **Restart the MCP host application** after granting permission
+> 3. Add your Terminal application AND your MCP host application
+> 4. **Restart both applications** after granting permissions
 
 ### 2. Window Approval (Required)
 
-After configuring your MCP client above, approve which windows can be captured:
+After configuring your MCP client above, approve which windows can be captured.
+
+<details>
+<summary><strong>If using pipx</strong></summary>
 
 ```bash
 # Interactive approval
@@ -127,6 +154,21 @@ mcp-server-screeny --setup
 # Auto-approve all current windows
 mcp-server-screeny --setup --allow-all
 ```
+
+</details>
+
+<details>
+<summary><strong>If using uvx</strong></summary>
+
+```bash
+# Interactive approval
+uvx mcp-server-screeny --setup
+
+# Auto-approve all current windows
+uvx mcp-server-screeny --setup --allow-all
+```
+
+</details>
 
 Approvals are saved to `~/.screeny/approved_windows.json`. Re-run setup when you want to update the list of approved windows.
 
@@ -150,13 +192,15 @@ mcp-server-screeny --setup
 
 ### Common Issues
 
-**"Quartz framework not available"**
+**"spawn uvx ENOENT" error**
 
-- Solution: Install dependencies with `pip install -e .` or ensure internet connection for automatic installation
+- Solution: Use the full path to uvx in your MCP config instead of just `"uvx"`
+- Find path with: `which uvx`
+- Example: `"/opt/homebrew/bin/uvx"` or `"/usr/local/bin/uvx"`
 
 **"No approved windows found"**
 
-- Solution: Run `mcp-server-screeny --setup` first
+- Solution: Run `mcp-server-screeny --setup` first (or `uvx mcp-server-screeny --setup` if using uvx)
 
 **"Screen Recording permission required" or "No windows found"**
 
@@ -168,6 +212,16 @@ mcp-server-screeny --setup
 ## Contributing
 
 Pull requests are welcome! Feel free to contribute new ideas, bug fixes, or enhancements.
+
+This is my first MCP project - if you encounter any bugs, please open an issue and I'll do my best to fix them!
+
+<details>
+<summary><strong>Why I Built This</strong></summary>
+
+I created this tool to streamline my mobile development workflow. I was tired of
+manually taking screenshots repeatedly to describe UI issues. With Screeny, Cursor can directly capture screenshots of my iOS simulator and iterate on the design in a loop. I'm excited to see how others will use this!
+
+</details>
 
 ## Requirements
 
