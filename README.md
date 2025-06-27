@@ -1,11 +1,20 @@
 # Screeny MCP Server
 
-A **macOS-only MCP server** that enables LLMs to capture screenshots of specific application windows, providing visual context for development and debugging tasks.
+A **privacy-first, macOS-only MCP server** that enables LLMs to capture screenshots of pre-approved application windows, providing secure visual context for development and debugging tasks.
+
+## 🔒 Privacy-First Design
+
+Unlike other screenshot tools, Screeny requires **explicit user approval** for each window before it can be captured:
+
+- **Window approval system** - Only pre-approved windows can be captured
+- **User-controlled access** - You decide exactly which windows are accessible
+- **Local storage** - Approvals saved locally in `~/.screeny/approved_windows.json`
+- **No broad permissions** - Can't capture arbitrary screens or windows
 
 > [!IMPORTANT]
-> Requires **Screen Capture permission** - must be granted before running window approval setup. Read instructions below.
+> Requires **Screen Capture permission** + **Window Approval Setup** - see instructions below.
 
-### Available Tools
+## Available Tools
 
 - `listWindows` - Lists all approved application windows available for screenshot capture.
 
