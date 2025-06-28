@@ -1,4 +1,6 @@
-# Screeny MCP Server
+![Screeny Banner](screeny_banner.png)
+
+# Screeny MCP Server: Privacy first macOS Screenshots for AI Agents
 
 A **privacy-first, macOS-only MCP server** that enables LLMs to capture screenshots of pre-approved application windows, providing secure visual context for development and debugging tasks.
 
@@ -8,6 +10,7 @@ Unlike other screenshot tools, Screeny requires **explicit user approval** for e
 
 - **Window approval system** - Only pre-approved windows can be captured
 - **User-controlled access** - You decide exactly which windows are accessible
+- **Non-intrusive capture** - Screenshots taken in background without changing window focus or interrupting your workflow
 - **Local storage** - Approvals saved locally in `~/.screeny/approved_windows.json`
 - **No broad permissions** - Can't capture arbitrary screens or windows
 
@@ -23,7 +26,7 @@ Unlike other screenshot tools, Screeny requires **explicit user approval** for e
 - `takeScreenshot` - Captures a screenshot of a specific window by its ID.
   - **Captures windows in background** - no need to bring window to front, but cannot capture minimized windows
   - **Provides actual pixel data** - full-fidelity image, not OCR or text extraction
-  - **Can compress image** - if requested, compresses image to fit within 1MB
+  - **Can compress image** - if needed, compresses large images to fit within 1MB
 
 ### Resources
 
@@ -139,7 +142,7 @@ First install with: `pipx install mcp-server-screeny`
 
 > **Note**: You need to grant Screen Capture permission to BOTH:
 >
-> 1. **Your Terminal application** (Terminal.app, iTerm2, etc.) - Required for running setup
+> 1. **Your Terminal application** (Terminal.app, iTerm2, etc.) - Required for running setup (can be disabled after)
 > 2. **Your MCP host** (Claude Desktop, Cursor) - Required for taking screenshots
 >
 > To add them:
@@ -235,7 +238,8 @@ manually taking screenshots repeatedly to describe UI issues. With Screeny, Curs
 ## Requirements
 
 - Python 3.10+
-- macOS (uses Quartz framework)
+- macOS
+- Screen Capture permission
 
 ## License
 
