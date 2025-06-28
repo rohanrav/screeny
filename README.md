@@ -40,7 +40,7 @@ Unlike other screenshot tools, Screeny requires **explicit user approval** for e
 3. **Restart Claude Desktop** after saving config
 
 <details>
-<summary><strong>Using pipx (recommended)</strong></summary>
+<summary><strong>Using pipx</strong></summary>
 
 First install with: `pipx install mcp-server-screeny`
 
@@ -90,7 +90,7 @@ First install with: `pipx install mcp-server-screeny`
 3. **Restart Cursor** after saving config
 
 <details>
-<summary><strong>Using pipx (recommended)</strong></summary>
+<summary><strong>Using pipx</strong></summary>
 
 First install with: `pipx install mcp-server-screeny`
 
