@@ -1,5 +1,9 @@
 ![Screeny Banner](screeny_banner.png)
 
+[![version](https://badge.fury.io/py/mcp-server-screeny.svg)](https://pypi.org/project/mcp-server-screeny/)
+[![macOS](https://img.shields.io/badge/macOS-only-blue.svg)](https://www.apple.com/macos/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 # Screeny MCP Server: Privacy first macOS Screenshots for AI Agents
 
 A **privacy-first, macOS-only MCP server** that enables LLMs to capture screenshots of pre-approved application windows, providing secure visual context for development and debugging tasks.
