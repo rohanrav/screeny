@@ -15,7 +15,7 @@ Unlike other screenshot tools, Screeny requires **explicit user approval** for e
 - **Window approval system** - Only pre-approved windows can be captured
 - **User-controlled access** - You decide exactly which windows are accessible
 - **Non-intrusive capture** - Screenshots taken in background without changing window focus or interrupting your workflow
-- **Local storage** - Approvals saved locally in `~/.screeny/approved_windows.json`
+- **No external connections** - Screeny runs entirely on your device, screenshots are deleted immediately after use
 
 > [!IMPORTANT]
 > Requires **Screen Capture permission** + **Window Approval Setup** - see instructions below.
