@@ -4,21 +4,23 @@
 [![macOS](https://img.shields.io/badge/macOS-only-blue.svg)](https://www.apple.com/macos/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/install-mcp?name=screeny&config=eyJjb21tYW5kIjoidXZ4IG1jcC1zZXJ2ZXItc2NyZWVueSJ9)
+
 # Screeny MCP Server: Privacy first macOS Screenshots for AI Agents
 
-A **privacy-first, macOS-only MCP server** that enables LLMs to capture screenshots of pre-approved application windows, providing secure visual context for development and debugging tasks.
+A **privacy-first, macOS-only MCP server** that enables AI agents to capture screenshots of pre-approved application windows, providing secure visual context for development and debugging tasks.
+
+> [!IMPORTANT]
+> Requires **Screen Capture permission** + **Window Approval Setup** - see instructions below.
 
 ## 🔒 Privacy-First Design
 
 Unlike other screenshot tools, Screeny requires **explicit user approval** for each window before it can be captured:
 
-- **Window approval system** - Only pre-approved windows can be captured
+- **Window approval system** - Only pre-approved windows can be captured (approved during setup)
 - **User-controlled access** - You decide exactly which windows are accessible
 - **Non-intrusive capture** - Screenshots taken in background without changing window focus or interrupting your workflow
 - **No external connections** - Screeny runs entirely on your device, screenshots are deleted immediately after use
-
-> [!IMPORTANT]
-> Requires **Screen Capture permission** + **Window Approval Setup** - see instructions below.
 
 ## Available Tools
 
