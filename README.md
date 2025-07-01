@@ -1,15 +1,16 @@
 ![Screeny Banner](screeny_banner.png)
 
+[![MCP Server](https://badge.mcpx.dev?type=server "MCP Server")](https://mcpx.dev/server/mcp-server-screeny)
 [![version](https://badge.fury.io/py/mcp-server-screeny.svg)](https://pypi.org/project/mcp-server-screeny/)
 [![PyPI Downloads](https://static.pepy.tech/badge/mcp-server-screeny)](https://pepy.tech/projects/mcp-server-screeny)
 [![macOS](https://img.shields.io/badge/macOS-only-blue.svg)](https://www.apple.com/macos/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/install-mcp?name=screeny&config=eyJjb21tYW5kIjoidXZ4IG1jcC1zZXJ2ZXItc2NyZWVueSJ9)
-
 # Screeny MCP Server: Privacy first macOS Screenshots for AI Agents
 
 A **privacy-first, macOS-only MCP server** that enables AI agents to capture screenshots of pre-approved application windows, providing secure visual context for development and debugging tasks.
+
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/install-mcp?name=screeny&config=eyJjb21tYW5kIjoidXZ4IG1jcC1zZXJ2ZXItc2NyZWVueSJ9)
 
 > [!IMPORTANT]
 > Requires **Screen Capture permission** + **Window Approval Setup** - see instructions below.

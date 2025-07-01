@@ -362,7 +362,7 @@ def list_windows() -> list[TextContent]:
     if not approved_windows:
         raise McpError(ErrorData(
             code=INVALID_PARAMS,
-            message='No approved windows found. Run setup: "mcp-server-screeny --setup"'
+            message='No approved windows found. Run setup: "mcp-server-screeny --setup" or "uvx mcp-server-screeny --setup"'
         ))
 
     result_data = {
@@ -422,7 +422,7 @@ def take_screenshot(request: ScreenshotRequest) -> list[ImageContent | TextConte
     if not approved_windows:
         raise McpError(ErrorData(
             code=INVALID_PARAMS,
-            message='No approved windows found. Run setup: "mcp-server-screeny --setup"'
+            message='No approved windows found. Run setup: "mcp-server-screeny --setup" or "uvx mcp-server-screeny --setup"'
         ))
 
     if window_id not in approved_windows:
@@ -520,7 +520,7 @@ def get_server_info() -> str:
     """Get information about the Screeny MCP server"""
     return json.dumps({
         "name": "Screeny MCP Server",
-        "version": "0.1.12",
+        "version": "0.1.13",
         "description": "Capture screenshots of specific application windows, providing visual context for development and debugging tasks",
         "capabilities": [
             "List application windows on macOS",
