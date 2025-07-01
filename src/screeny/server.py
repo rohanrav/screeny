@@ -22,8 +22,6 @@ logger = logging.getLogger(__name__)
 CONFIG_DIR = Path.home() / ".screeny"
 CONFIG_FILE = CONFIG_DIR / "approved_windows.json"
 
-_approved_windows: Dict[str, Dict[str, Any]] = {}
-
 mcp = FastMCP(
     "Screeny",
     instructions="""Use this server to capture screenshots of specific application windows on macOS, providing visual context for development and debugging tasks.
@@ -309,6 +307,29 @@ def debug_mode():
     print("   💡 Grant Screen Recording permission when taking screenshots for best UX")
 
 
+def get_current_approved_windows() -> Dict[str, Dict[str, Any]]:
+    """Load approved windows from disk and validate they're still open"""
+    approved = load_approved_windows()
+    if not approved:
+        return {}
+
+    current_windows = get_all_windows()
+    current_window_ids = {w.id for w in current_windows}
+
+    still_open_approved = {}
+    for window_id, window_info in approved.items():
+        if window_info.get('approved') and window_id in current_window_ids:
+            still_open_approved[window_id] = window_info
+
+    if len(still_open_approved) < len(approved):
+        removed_count = len(approved) - len(still_open_approved)
+        save_approved_windows(still_open_approved)
+        logger.info(
+            f"Removed {removed_count} closed windows from approved list")
+
+    return still_open_approved
+
+
 @mcp.tool(
     annotations={
         "title": "List Approved Windows",
@@ -330,41 +351,23 @@ def list_windows() -> list[TextContent]:
     - total_approved: Count of approved windows  
     - message: Next steps guidance
     """
-    global _approved_windows
-
-    if not _approved_windows:
-        _approved_windows = load_approved_windows()
-
     try:
-        current_windows = get_all_windows()
+        approved_windows = get_current_approved_windows()
     except RuntimeError as e:
         raise McpError(ErrorData(
             code=INTERNAL_ERROR,
-            message=str(e)
+            message=f"Unexpected error listing approved windows: {str(e)}"
         ))
 
-    if not _approved_windows:
+    if not approved_windows:
         raise McpError(ErrorData(
             code=INVALID_PARAMS,
             message='No approved windows found. Run setup: "mcp-server-screeny --setup"'
         ))
 
-    current_window_ids = {w.id for w in current_windows}
-    still_open_approved = {}
-    for window_id, window_info in _approved_windows.items():
-        if window_info.get('approved') and window_id in current_window_ids:
-            still_open_approved[window_id] = window_info
-
-    if len(still_open_approved) < len(_approved_windows):
-        removed_count = len(_approved_windows) - len(still_open_approved)
-        _approved_windows = still_open_approved
-        save_approved_windows(_approved_windows)
-        logger.info(
-            f"Removed {removed_count} closed windows from approved list")
-
     result_data = {
-        'approved_windows': list(_approved_windows.values()),
-        'total_approved': len(_approved_windows),
+        'approved_windows': list(approved_windows.values()),
+        'total_approved': len(approved_windows),
         'message': 'Use takeScreenshot with a window ID to capture.'
     }
 
@@ -400,7 +403,6 @@ def take_screenshot(request: ScreenshotRequest) -> list[ImageContent | TextConte
     By default, returns full quality screenshots to preserve image fidelity.
     Use compress=true to reduce size for transmission if needed.
     """
-    global _approved_windows
     window_id = request.window_id
 
     if not window_id or not isinstance(window_id, str):
@@ -409,16 +411,27 @@ def take_screenshot(request: ScreenshotRequest) -> list[ImageContent | TextConte
             message="window_id must be a non-empty string"
         ))
 
-    if not _approved_windows:
-        _approved_windows = load_approved_windows()
-
-    if window_id not in _approved_windows:
+    try:
+        approved_windows = get_current_approved_windows()
+    except RuntimeError as e:
         raise McpError(ErrorData(
-            code=INVALID_PARAMS,
-            message=f"Window ID '{window_id}' not found in approved windows. Run listWindows first to see available windows, or run setup to approve new windows."
+            code=INTERNAL_ERROR,
+            message=str(e)
         ))
 
-    window_info = _approved_windows[window_id]
+    if not approved_windows:
+        raise McpError(ErrorData(
+            code=INVALID_PARAMS,
+            message='No approved windows found. Run setup: "mcp-server-screeny --setup"'
+        ))
+
+    if window_id not in approved_windows:
+        raise McpError(ErrorData(
+            code=INVALID_PARAMS,
+            message=f"Window ID '{window_id}' not found in currently open approved windows. Run listWindows to see available windows, or run setup to approve new windows."
+        ))
+
+    window_info = approved_windows[window_id]
 
     with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
         tmp_path = tmp_file.name
@@ -507,7 +520,7 @@ def get_server_info() -> str:
     """Get information about the Screeny MCP server"""
     return json.dumps({
         "name": "Screeny MCP Server",
-        "version": "0.1.11",
+        "version": "0.1.12",
         "description": "Capture screenshots of specific application windows, providing visual context for development and debugging tasks",
         "capabilities": [
             "List application windows on macOS",

@@ -1,6 +1,7 @@
 ![Screeny Banner](screeny_banner.png)
 
 [![version](https://badge.fury.io/py/mcp-server-screeny.svg)](https://pypi.org/project/mcp-server-screeny/)
+[![PyPI Downloads](https://static.pepy.tech/badge/mcp-server-screeny)](https://pepy.tech/projects/mcp-server-screeny)
 [![macOS](https://img.shields.io/badge/macOS-only-blue.svg)](https://www.apple.com/macos/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 

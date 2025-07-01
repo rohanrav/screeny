@@ -3,7 +3,7 @@ import sys
 
 from .server import serve, setup_mode, debug_mode
 
-__version__ = "0.1.11"
+__version__ = "0.1.12"
 __all__ = ["serve", "setup_mode", "debug_mode"]
 
 
@@ -17,7 +17,6 @@ def main():
     parser.add_argument('--debug', action='store_true',
                         help='Run debug mode to test window enumeration')
 
-    # Only parse args if we're running directly (not via MCP)
     if len(sys.argv) > 1:
         args = parser.parse_args()
         if args.setup:
