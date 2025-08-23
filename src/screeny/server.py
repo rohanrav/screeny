@@ -5,7 +5,6 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from base64 import b64encode
 from typing import Dict, List, Any, Annotated
 
 from mcp.server.fastmcp import FastMCP
@@ -14,13 +13,14 @@ from mcp.shared.exceptions import McpError
 from mcp.types import ErrorData, INVALID_PARAMS, INTERNAL_ERROR
 from pydantic import BaseModel, Field
 
-from .image_compression import compress_image, get_mime_type
+from .image_compression import compress_to_base64_cap
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 CONFIG_DIR = Path.home() / ".screeny"
 CONFIG_FILE = CONFIG_DIR / "approved_windows.json"
+SETTINGS_FILE = CONFIG_DIR / "config.json"
 
 mcp = FastMCP(
     "Screeny",
@@ -28,10 +28,10 @@ mcp = FastMCP(
 
 WORKFLOW:
 1. Call 'list_windows' once to discover available windows and their IDs
-2. Use 'take_screenshot' with any valid window ID from the list_windows results. Use compress=true if you need to reduce image size for transmission..
+2. Use 'take_screenshot' with any valid window ID from the list_windows results.
 
 Note: Server requires the user to setup (Screen Recording permission and window approval) before use.
-Screenshots are returned at full quality by default. Use compression only when needed."""
+Screenshots are compressed to prevent transmission issues."""
 )
 
 
@@ -51,9 +51,6 @@ class ScreenshotRequest(BaseModel):
 
     window_id: Annotated[str, Field(
         description="The window ID from listWindows to capture")]
-    compress: Annotated[bool, Field(
-        default=False,
-        description="Compress image to reduce size (may reduce quality)")]
 
 
 class WindowSetupRequest(BaseModel):
@@ -66,6 +63,48 @@ class WindowSetupRequest(BaseModel):
 def ensure_config_dir():
     """Ensure the config directory exists"""
     CONFIG_DIR.mkdir(exist_ok=True)
+
+
+def load_settings() -> Dict[str, Any]:
+    """Load settings from persistent storage (advanced options)."""
+    if not SETTINGS_FILE.exists():
+        return {}
+    try:
+        with open(SETTINGS_FILE, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        logger.warning(f"Failed to load settings: {e}")
+        return {}
+
+
+def save_settings(settings: Dict[str, Any]):
+    """Save settings to persistent storage (advanced options)."""
+    ensure_config_dir()
+    try:
+        with open(SETTINGS_FILE, 'w') as f:
+            json.dump(settings, f, indent=2)
+    except Exception as e:
+        logger.error(f"Failed to save settings: {e}")
+
+
+def get_active_max_b64_kb() -> int:
+    """Resolve the active base64 size cap (KB) with defaults and clamping.
+
+    Priority: env var SCREENY_MAX_B64_KB > settings file > default (500).
+    Always clamp to [100, 900].
+    """
+    env_val = os.environ.get('SCREENY_MAX_B64_KB')
+    if env_val:
+        try:
+            val = int(env_val)
+        except ValueError:
+            val = 500
+    else:
+        settings = load_settings()
+        val = int(settings.get('max_b64_kb', 500))
+
+    val = max(100, min(900, val))
+    return val
 
 
 def load_approved_windows() -> Dict[str, Dict[str, Any]]:
@@ -276,6 +315,24 @@ def setup_mode(allow_all: bool = False):
         for window in approved.values():
             print(f"   - {window['app']}: {window['title']}")
         print("\n💡 Grant Screen Recording permission when prompted!")
+
+        print("\n⚙️  Advanced options (optional):")
+        adv = input("    Open advanced options now? [y/N]: ").lower().strip()
+        if adv in ['y', 'yes']:
+            print("\n   Select image size preset (affects stability and clarity):")
+            print("     1) Small  (250 KB)  — fastest, safest; small text may blur")
+            print(
+                "     2) Medium (500 KB)  — recommended; balanced quality and stability")
+            print(
+                "     3) Large  (750 KB)  — more detail; higher chance of transmission errors")
+            preset = input("   Enter 1/2/3 [default: 2]: ").strip()
+            mapping = {'1': 250, '2': 500, '3': 750}
+            max_kb = mapping.get(preset if preset in mapping else '2', 500)
+            settings = load_settings()
+            settings['max_b64_kb'] = max_kb
+            save_settings(settings)
+            print(
+                f"\n✅ Saved advanced setting: max base64 size = {max_kb} KB (stored in {SETTINGS_FILE})")
     else:
         print("\n❌ No windows approved. Run setup again when ready.")
         print("💡 Tip: Use --allow-all flag to approve all windows automatically:")
@@ -314,16 +371,27 @@ def get_current_approved_windows() -> Dict[str, Dict[str, Any]]:
         return {}
 
     current_windows = get_all_windows()
-    current_window_ids = {w.id for w in current_windows}
+    current_window_map = {w.id: w for w in current_windows}
 
     still_open_approved = {}
+
     for window_id, window_info in approved.items():
-        if window_info.get('approved') and window_id in current_window_ids:
+        if window_info.get('approved') and window_id in current_window_map:
+            current_window = current_window_map[window_id]
+
+            old_title = window_info['title']
+            new_title = current_window.title
+
+            if old_title != new_title:
+                logger.info(
+                    f"Updated title for window {window_id}: '{old_title}' -> '{new_title}'")
+                window_info['title'] = new_title
+
             still_open_approved[window_id] = window_info
 
+    save_approved_windows(still_open_approved)
     if len(still_open_approved) < len(approved):
         removed_count = len(approved) - len(still_open_approved)
-        save_approved_windows(still_open_approved)
         logger.info(
             f"Removed {removed_count} closed windows from approved list")
 
@@ -393,15 +461,13 @@ def take_screenshot(request: ScreenshotRequest) -> list[ImageContent | TextConte
 
     Args:
     - window_id (str): Exact window ID string from list_windows results
-    - compress (bool): Optional. Compress image to reduce size (may reduce quality)
 
     Returns:
-    - ImageContent: Base64-encoded PNG screenshot  
+    - ImageContent: Base64-encoded screenshot (JPEG)
     - TextContent: Capture metadata (window info, timestamp)
 
     Note: Can capture windows in background but not minimized windows.
-    By default, returns full quality screenshots to preserve image fidelity.
-    Use compress=true to reduce size for transmission if needed.
+    Images are always compressed to JPEG and capped to ≤750KB including base64 overhead.
     """
     window_id = request.window_id
 
@@ -463,25 +529,33 @@ def take_screenshot(request: ScreenshotRequest) -> list[ImageContent | TextConte
                 message=f"Screenshot file empty or missing for '{window_info['title']}'"
             ))
 
-        image_data = tmp_file_path.read_bytes()
+        # Always compress to JPEG and ensure final base64 payload within configured cap
+        configured_kb = get_active_max_b64_kb()
+        base64_max_bytes = configured_kb * 1024
+        base64_data, mime_type, base64_size_bytes, chosen_scale, chosen_quality, used_fallback = compress_to_base64_cap(
+            tmp_path, base64_max_bytes)
 
-        if request.compress:
-            # Calculate target size to stay under 1MB MCP limit after base64 encoding
-            # Target raw size = 1MB / 1.35 (to account for base64 overhead)
-            mcp_limit_in_bytes = 1024 * 1024
-            target_raw_size = int(mcp_limit_in_bytes / 1.35)
-            image_data, format_used = compress_image(tmp_path, target_raw_size)
-        else:
-            format_used = "PNG"
+        if not base64_data:
+            raise McpError(ErrorData(
+                code=INTERNAL_ERROR,
+                message=(
+                    f"Compression could not fit under cap (cap={configured_kb}KB). "
+                    f"Try a smaller window area or reduce configured size preset."
+                )
+            ))
 
-        base64_data = b64encode(image_data).decode('utf-8')
-        mime_type = get_mime_type(format_used)
+        base64_size_kb = (base64_size_bytes + 1023) // 1024
 
         metadata = {
             "window_id": window_id,
             "app": window_info['app'],
             "title": window_info['title'],
-            "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "base64_size_kb": base64_size_kb,
+            "cap_kb": configured_kb,
+            "chosen_scale": chosen_scale,
+            "chosen_quality": chosen_quality,
+            "used_fallback": used_fallback
         }
 
         return [
@@ -520,12 +594,12 @@ def get_server_info() -> str:
     """Get information about the Screeny MCP server"""
     return json.dumps({
         "name": "Screeny MCP Server",
-        "version": "0.1.13",
+        "version": "0.3.1",
         "description": "Capture screenshots of specific application windows, providing visual context for development and debugging tasks",
         "capabilities": [
             "List application windows on macOS",
             "Capture screenshots of specific application windows",
-            "Return screenshots as Base64-encoded PNG images",
+            "Return screenshots as Base64-encoded JPEG images",
             "Provide window metadata for analysis"
         ],
         "requirements": [
@@ -535,7 +609,9 @@ def get_server_info() -> str:
         ],
         "tools": ["listWindows", "takeScreenshot"],
         "resources": ["screeny://info"],
-        "config_file": str(CONFIG_FILE)
+        "config_file": str(CONFIG_FILE),
+        "settings_file": str(SETTINGS_FILE),
+        "max_b64_kb": get_active_max_b64_kb()
     }, indent=2)
 
 

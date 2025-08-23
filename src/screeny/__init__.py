@@ -3,7 +3,7 @@ import sys
 
 from .server import serve, setup_mode, debug_mode
 
-__version__ = "0.1.13"
+__version__ = "0.3.1"
 __all__ = ["serve", "setup_mode", "debug_mode"]
 
 
@@ -16,6 +16,8 @@ def main():
                         help='When used with --setup, approve all windows automatically')
     parser.add_argument('--debug', action='store_true',
                         help='Run debug mode to test window enumeration')
+    parser.add_argument('--version', action='version', version=f'screeny {__version__}',
+                        help='Show version information')
 
     if len(sys.argv) > 1:
         args = parser.parse_args()

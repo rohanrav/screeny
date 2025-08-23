@@ -33,7 +33,7 @@ Unlike other screenshot tools, Screeny requires **explicit user approval** for e
 - `takeScreenshot` - Captures a screenshot of a specific window by its ID.
   - **Captures windows in background** - no need to bring window to front, but cannot capture minimized windows
   - **Provides actual pixel data** - full-fidelity image, not OCR or text extraction
-  - **Can compress image** - if needed, compresses large images to fit within 1MB
+  - **JPEG compression with safe cap** - screenshots are compressed to JPEG with a default base64 payload cap of **500KB** for reliability
 
 ### Resources
 
@@ -190,6 +190,16 @@ uvx mcp-server-screeny --setup --allow-all
 </details>
 
 Approvals are saved to `~/.screeny/approved_windows.json`. Re-run setup when you want to update the list of approved windows.
+
+### Advanced Options (Optional)
+
+During setup, you can configure the screenshot size preset:
+
+- **Small (250KB)**: Fastest and safest, but fine text may blur
+- **Medium (500KB)**: Recommended default; balanced clarity and stability
+- **Large (750KB)**: Higher detail, but larger payloads can be more error-prone in some clients
+
+Your choice is saved in `~/.screeny/config.json` as `max_b64_kb`. You can also override via the `SCREENY_MAX_B64_KB` environment variable. A hard ceiling is enforced internally.
 
 ## Security & Privacy
 
