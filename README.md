@@ -33,7 +33,7 @@ Unlike other screenshot tools, Screeny requires **explicit user approval** for e
 - `takeScreenshot` - Captures a screenshot of a specific window by its ID.
   - **Captures windows in background** - no need to bring window to front, but cannot capture minimized windows
   - **Provides actual pixel data** - full-fidelity image, not OCR or text extraction
-  - **JPEG compression with safe cap** - screenshots are compressed to JPEG with a default base64 payload cap of **500KB** for reliability
+  - **JPEG compression with configurable cap** - screenshots are always JPEG-compressed with a base64 payload cap (default preset: **Medium / 250KB**), configurable and clamped to **100–900KB**
 
 ### Resources
 
@@ -193,13 +193,15 @@ Approvals are saved to `~/.screeny/approved_windows.json`. Re-run setup when you
 
 ### Advanced Options (Optional)
 
-During setup, you can configure the screenshot size preset:
+During setup, you can configure the screenshot size preset (affects stability and clarity):
 
-- **Small (250KB)**: Fastest and safest, but fine text may blur
-- **Medium (500KB)**: Recommended default; balanced clarity and stability
-- **Large (750KB)**: Higher detail, but larger payloads can be more error-prone in some clients
+- **Tiny (50KB)** — most stable; fine text will blur
+- **Small (100KB)** — recommended default; balanced clarity and stability
+- **Medium (250KB)** — more detail; may be slower and heavier
+- **Large (500KB)** — high detail; may trigger client summarization
+- **XL (750KB)** — maximum detail; most error-prone
 
-Your choice is saved in `~/.screeny/config.json` as `max_b64_kb`. You can also override via the `SCREENY_MAX_B64_KB` environment variable. A hard ceiling is enforced internally.
+Your choice is saved in `~/.screeny/config.json` as `max_b64_kb`. You can also override via the `SCREENY_MAX_B64_KB` environment variable. The active cap is clamped to **100–900KB**.
 
 ## Security & Privacy
 

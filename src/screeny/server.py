@@ -2,6 +2,7 @@ import subprocess
 import tempfile
 import os
 import json
+import ast
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,7 +12,7 @@ from mcp.server.fastmcp import FastMCP
 from mcp.types import TextContent, ImageContent
 from mcp.shared.exceptions import McpError
 from mcp.types import ErrorData, INVALID_PARAMS, INTERNAL_ERROR
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from .image_compression import compress_to_base64_cap
 
@@ -52,6 +53,35 @@ class ScreenshotRequest(BaseModel):
     window_id: Annotated[str, Field(
         description="The window ID from listWindows to capture")]
 
+    @model_validator(mode='before')
+    @classmethod
+    def _coerce_from_string(cls, input_value):
+        """Allow callers to pass a stringified request.
+
+        Accepts either:
+        - a dict-like object {"window_id": "..."}
+        - a JSON string that parses to that shape
+        - a Python-literal dict string (e.g., "{'window_id': '...'}")
+
+        If parsing fails, raise a clear validation error.
+        """
+        if isinstance(input_value, str):
+            try:
+                parsed = json.loads(input_value)
+                if isinstance(parsed, dict):
+                    return parsed
+            except Exception:
+                try:
+                    parsed = ast.literal_eval(input_value)
+                    if isinstance(parsed, dict):
+                        return parsed
+                except Exception:
+                    pass
+            raise ValueError(
+                "request must be an object or a JSON/Python-dict string representing that object"
+            )
+        return input_value
+
 
 class WindowSetupRequest(BaseModel):
     """Parameters for window setup operations."""
@@ -90,7 +120,7 @@ def save_settings(settings: Dict[str, Any]):
 def get_active_max_b64_kb() -> int:
     """Resolve the active base64 size cap (KB) with defaults and clamping.
 
-    Priority: env var SCREENY_MAX_B64_KB > settings file > default (500).
+    Priority: env var SCREENY_MAX_B64_KB > settings file > default (250).
     Always clamp to [100, 900].
     """
     env_val = os.environ.get('SCREENY_MAX_B64_KB')
@@ -98,10 +128,10 @@ def get_active_max_b64_kb() -> int:
         try:
             val = int(env_val)
         except ValueError:
-            val = 500
+            val = 250
     else:
         settings = load_settings()
-        val = int(settings.get('max_b64_kb', 500))
+        val = int(settings.get('max_b64_kb', 250))
 
     val = max(100, min(900, val))
     return val
@@ -320,14 +350,16 @@ def setup_mode(allow_all: bool = False):
         adv = input("    Open advanced options now? [y/N]: ").lower().strip()
         if adv in ['y', 'yes']:
             print("\n   Select image size preset (affects stability and clarity):")
-            print("     1) Small  (250 KB)  — fastest, safest; small text may blur")
+            print("     1) Tiny   (50 KB)   — most stable; fine text will blur")
             print(
-                "     2) Medium (500 KB)  — recommended; balanced quality and stability")
+                "     2) Small  (100 KB)  — recommended default; balanced clarity and stability")
+            print("     3) Medium (250 KB)  — more detail; may be slower and heavier")
             print(
-                "     3) Large  (750 KB)  — more detail; higher chance of transmission errors")
-            preset = input("   Enter 1/2/3 [default: 2]: ").strip()
-            mapping = {'1': 250, '2': 500, '3': 750}
-            max_kb = mapping.get(preset if preset in mapping else '2', 500)
+                "     4) Large  (500 KB)  — high detail; may trigger client summarization")
+            print("     5) XL     (750 KB)  — maximum detail; most error-prone")
+            preset = input("   Enter 1/2/3/4/5 [default: 3]: ").strip()
+            mapping = {'1': 50, '2': 100, '3': 250, '4': 500, '5': 750}
+            max_kb = mapping.get(preset if preset in mapping else '3', 250)
             settings = load_settings()
             settings['max_b64_kb'] = max_kb
             save_settings(settings)
@@ -467,11 +499,11 @@ def take_screenshot(request: ScreenshotRequest) -> list[ImageContent | TextConte
     - TextContent: Capture metadata (window info, timestamp)
 
     Note: Can capture windows in background but not minimized windows.
-    Images are always compressed to JPEG and capped to ≤750KB including base64 overhead.
+    Images are always compressed to JPEG and capped to ≤500KB including base64 overhead (configurable).
     """
-    window_id = request.window_id
+    final_window_id = request.window_id
 
-    if not window_id or not isinstance(window_id, str):
+    if not final_window_id or not isinstance(final_window_id, str):
         raise McpError(ErrorData(
             code=INVALID_PARAMS,
             message="window_id must be a non-empty string"
@@ -491,19 +523,19 @@ def take_screenshot(request: ScreenshotRequest) -> list[ImageContent | TextConte
             message='No approved windows found. Run setup: "mcp-server-screeny --setup" or "uvx mcp-server-screeny --setup"'
         ))
 
-    if window_id not in approved_windows:
+    if final_window_id not in approved_windows:
         raise McpError(ErrorData(
             code=INVALID_PARAMS,
-            message=f"Window ID '{window_id}' not found in currently open approved windows. Run listWindows to see available windows, or run setup to approve new windows."
+            message=f"Window ID '{final_window_id}' not found in currently open approved windows. Run listWindows to see available windows, or run setup to approve new windows."
         ))
 
-    window_info = approved_windows[window_id]
+    window_info = approved_windows[final_window_id]
 
     with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
         tmp_path = tmp_file.name
 
     try:
-        result = take_screenshot_direct(window_id, tmp_path)
+        result = take_screenshot_direct(final_window_id, tmp_path)
 
         if result.returncode != 0:
             if "not permitted" in result.stderr.lower() or "not authorized" in result.stderr.lower():
@@ -547,7 +579,7 @@ def take_screenshot(request: ScreenshotRequest) -> list[ImageContent | TextConte
         base64_size_kb = (base64_size_bytes + 1023) // 1024
 
         metadata = {
-            "window_id": window_id,
+            "window_id": final_window_id,
             "app": window_info['app'],
             "title": window_info['title'],
             "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -594,7 +626,7 @@ def get_server_info() -> str:
     """Get information about the Screeny MCP server"""
     return json.dumps({
         "name": "Screeny MCP Server",
-        "version": "0.3.1",
+        "version": "0.3.6",
         "description": "Capture screenshots of specific application windows, providing visual context for development and debugging tasks",
         "capabilities": [
             "List application windows on macOS",

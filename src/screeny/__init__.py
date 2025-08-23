@@ -3,7 +3,7 @@ import sys
 
 from .server import serve, setup_mode, debug_mode
 
-__version__ = "0.3.1"
+__version__ = "0.3.6"
 __all__ = ["serve", "setup_mode", "debug_mode"]
 
 
