@@ -141,6 +141,11 @@ First install with: `pipx install mcp-server-screeny`
 
 </details>
 
+> [!NOTE] > **Cursor MCP host**
+>
+> - Cursor auto context summarization can trigger looping tool calls (repeated screenshots).
+> - If this happens, lower the KB cap (use a smaller preset) or choose a model with a larger context window.
+
 ## Setup
 
 ### 1. Grant Screen Capture Permission (Required)
